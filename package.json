@@ -1,0 +1,48 @@
+{
+  "name": "nicorandompicker-frontend",
+  "version": "0.1.0",
+  "license": "SEE LICENSE IN LICENSE",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.17.0",
+  "scripts": {
+    "dev": "concurrently -k -n vite,worker -c cyan,green \"pnpm dev:frontend\" \"pnpm dev:worker\"",
+    "dev:frontend": "vite --host 0.0.0.0 --port 5173",
+    "dev:worker": "wrangler dev --port 8787",
+    "check": "svelte-check --tsconfig ./tsconfig.json",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "build:frontend": "vite build"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@sveltejs/vite-plugin-svelte": "^5.0.3",
+    "@tailwindcss/vite": "^4.2.4",
+    "@types/cloudflare-turnstile": "^0.2.2",
+    "concurrently": "^9.2.1",
+    "daisyui": "^5.5.19",
+    "eslint": "^10.3.0",
+    "eslint-plugin-svelte": "^3.17.1",
+    "globals": "^17.6.0",
+    "prettier": "^3.8.3",
+    "prettier-plugin-svelte": "^3.5.1",
+    "svelte": "^5.19.7",
+    "svelte-check": "^4.4.7",
+    "tailwindcss": "^4.2.4",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.59.2",
+    "vite": "^6.1.0",
+    "wrangler": "^4.87.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "sharp",
+      "workerd"
+    ]
+  },
+  "dependencies": {
+    "valibot": "^1.3.1"
+  }
+}

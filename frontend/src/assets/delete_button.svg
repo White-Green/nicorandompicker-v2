@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-10 -10 20 20">
+    <circle cx="0" cy="0" r="10" fill="whitesmoke"/>
+    <path d="
+        M0 2
+        L4 6
+        L6 6
+        L6 4
+        L2 0
+        L6 -4
+        L6 -6
+        L4 -6
+        L0 -2
+        L-4 -6
+        L-6 -6
+        L-6 -4
+        L-2 0
+        L-6 4
+        L-6 6
+        L-4 6
+        Z" stroke="#202020" stroke-width="0.3px" fill="tomato"/>
+</svg>

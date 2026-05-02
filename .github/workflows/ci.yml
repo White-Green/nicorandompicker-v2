@@ -1,0 +1,290 @@
+name: CI
+
+on:
+  push:
+    branches-ignore:
+      - main
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  frontend-format:
+    name: Frontend Format
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check frontend formatting
+        run: pnpm format:check
+
+  frontend-lint:
+    name: Frontend Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint frontend
+        run: pnpm lint
+
+  frontend-check:
+    name: Frontend Type Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Type-check frontend
+        run: pnpm check
+
+  frontend-build:
+    name: Frontend Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build frontend assets
+        run: pnpm build:frontend
+
+  rust-format:
+    name: Rust Format
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Rust
+        id: rust-toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      - name: Fetch Cargo dependencies
+        run: cargo fetch
+
+      - name: Check Rust formatting
+        run: cargo fmt --check
+
+  toml-format:
+    name: TOML Format
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Resolve taplo-cli version
+        id: taplo-version
+        run: |
+          VER=$(curl https://index.crates.io/ta/pl/taplo-cli | jq -r 'select(.yanked == false) | .vers' | sort -V | tail -n 1)
+          echo "version=$VER" >> $GITHUB_OUTPUT
+          echo "taplo-cli ${VER}"
+
+      - name: Cache taplo
+        id: cache-taplo
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cargo/bin/taplo
+          key: ${{ runner.os }}-taplo-${{ steps.taplo-version.outputs.version }}
+
+      - name: Setup Rust
+        if: steps.cache-taplo.outputs.cache-hit != 'true'
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install taplo
+        if: steps.cache-taplo.outputs.cache-hit != 'true'
+        run: cargo install taplo-cli --version "${{ steps.taplo-version.outputs.version }}" --locked
+
+      - name: Check TOML formatting
+        run: taplo fmt --check
+
+  rust-lint:
+    name: Rust Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Rust
+        id: rust-toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - name: Cache Cargo dependencies
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+          key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.lock') }}
+          restore-keys: ${{ github.ref_name != github.event.repository.default_branch && format('{0}-cargo-', runner.os) || '' }}
+
+      - name: Fetch Cargo dependencies
+        run: cargo fetch
+
+      - name: Cache Rust target
+        uses: actions/cache@v5
+        with:
+          path: target
+          key: ${{ runner.os }}-${{ github.job }}-target-${{ steps.rust-toolchain.outputs.cachekey }}-${{ hashFiles('Cargo.lock') }}
+          restore-keys: ${{ github.ref_name != github.event.repository.default_branch && format('{0}-{1}-target-{2}-', runner.os, github.job, steps.rust-toolchain.outputs.cachekey) || '' }}
+
+      - name: Lint Rust
+        run: cargo clippy --all-targets --tests -- -D warnings
+
+  rust-test:
+    name: Rust Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Rust
+        id: rust-toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo dependencies
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+          key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.lock') }}
+          restore-keys: ${{ github.ref_name != github.event.repository.default_branch && format('{0}-cargo-', runner.os) || '' }}
+
+      - name: Fetch Cargo dependencies
+        run: cargo fetch
+
+      - name: Cache Rust target
+        uses: actions/cache@v5
+        with:
+          path: target
+          key: ${{ runner.os }}-${{ github.job }}-target-${{ steps.rust-toolchain.outputs.cachekey }}-${{ hashFiles('Cargo.lock') }}
+          restore-keys: ${{ github.ref_name != github.event.repository.default_branch && format('{0}-{1}-target-{2}-', runner.os, github.job, steps.rust-toolchain.outputs.cachekey) || '' }}
+
+      - name: Test Rust
+        run: cargo test
+        env:
+          PROPTEST_CASES: 4096
+
+  worker-build:
+    name: Worker Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Rust
+        id: rust-toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Cache Cargo dependencies
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+          key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.lock') }}
+          restore-keys: ${{ github.ref_name != github.event.repository.default_branch && format('{0}-cargo-', runner.os) || '' }}
+
+      - name: Fetch Cargo dependencies
+        run: cargo fetch
+
+      - name: Cache Rust target
+        uses: actions/cache@v5
+        with:
+          path: target
+          key: ${{ runner.os }}-production-target-${{ steps.rust-toolchain.outputs.cachekey }}-${{ hashFiles('Cargo.lock') }}
+          restore-keys: ${{ github.ref_name != github.event.repository.default_branch && format('{0}-production-target-{1}-', runner.os, steps.rust-toolchain.outputs.cachekey) || '' }}
+
+      - name: Build Rust for Workers target
+        run: cargo build --target wasm32-unknown-unknown
+
+      - name: Resolve worker-build version
+        id: worker-build-version
+        run: |
+          VER=$(curl https://index.crates.io/wo/rk/worker-build | jq -r 'select(.yanked == false) | .vers' | sort -V | tail -n 1)
+          echo "version=$VER" >> $GITHUB_OUTPUT
+          echo "worker-build ${VER}"
+
+      - name: Cache worker-build
+        id: cache-worker-build
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cargo/bin/worker-build
+          key: ${{ runner.os }}-worker-build-${{ steps.worker-build-version.outputs.version }}
+
+      - name: Install worker-build
+        if: steps.cache-worker-build.outputs.cache-hit != 'true'
+        run: cargo install worker-build --version "${{ steps.worker-build-version.outputs.version }}" --locked
+
+      - name: Build Worker
+        run: worker-build --release
