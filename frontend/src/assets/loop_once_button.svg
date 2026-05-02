@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 100">
+    <path d="
+        M20 0
+        L0 20
+        H10
+        V60
+        Q10 100 50 100
+        H130
+        L110 80
+        H100
+        V95
+        H60
+        V80
+        H50
+        Q30 80 30 60
+        V20
+        H40
+        Z" fill="white"/>
+    <path d="
+        M140 100
+        L160 80
+        H150
+        V40
+        Q150 0 110 0
+        H30
+        L50 20
+        H55
+        L70 5
+        H90
+        V20
+        H110
+        Q130 20 130 40
+        V80
+        H120
+        Z" fill="white"/>
+    <path d="
+        M75 10
+        H85
+        V85
+        H95
+        V90
+        H65
+        V85
+        H75
+        V20
+        H65
+        Z" fill="white"/>
+</svg>

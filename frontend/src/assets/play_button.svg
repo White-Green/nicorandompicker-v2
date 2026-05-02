@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 90">
+    <path d="
+        M50 70
+        V0
+        H10
+        Q0 0 0 10
+        V80
+        Q0 90 10 90
+        H150
+        Q160 90 160 80
+        V10
+        Q160 0 150 0
+        H50
+        V20
+        L110 45
+        L50 70
+        z"
+          fill="#2020207f"/>
+    <path d="
+        M50 70
+        V20
+        L110 45
+        Z" fill="none" stroke="#2020209f" stroke-width="2px"/>
+    <path d="
+        M10 0
+        Q0 0 0 10
+        V80
+        Q0 90 10 90
+        H150
+        Q160 90 160 80
+        V10
+        Q160 0 150 0
+        H10
+        Z" fill="none" stroke="#2020209f" stroke-width="2px"/>
+</svg>

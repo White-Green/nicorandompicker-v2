@@ -1,0 +1,9 @@
+This file contains a GitHub logo:
+
+frontend/src/assets/github_logo.svg
+
+It is not licensed under Apache-2.0 OR MIT.
+
+GitHub logos and marks are subject to GitHub's logo usage terms:
+
+https://github.com/logos
