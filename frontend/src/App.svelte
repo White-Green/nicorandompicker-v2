@@ -352,8 +352,12 @@
           <button
             class="btn btn-ghost"
             type="button"
-            title={playerEnabled ? "動画プレーヤーを閉じる": "再生中の動画に戻る"}
-            aria-label={playerEnabled ? "動画プレーヤーを閉じる": "再生中の動画に戻る"}
+            title={playerEnabled
+              ? "動画プレーヤーを閉じる"
+              : "再生中の動画に戻る"}
+            aria-label={playerEnabled
+              ? "動画プレーヤーを閉じる"
+              : "再生中の動画に戻る"}
             onclick={togglePlayer}
           >
             <img
