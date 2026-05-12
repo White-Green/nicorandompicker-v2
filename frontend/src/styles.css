@@ -21,8 +21,6 @@
   --color-primary: oklch(67% 0.16 150);
 }
 
-/*@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));*/
-
 html,
 body,
 #app {

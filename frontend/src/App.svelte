@@ -21,6 +21,7 @@
   } from "./storage";
   import { notify } from "./notifications.svelte";
   import type { VideoContent, VideoPlayingData } from "./types";
+  import togglePlayerButton from "./assets/toggle_player_button.svg";
   import searchButton from "./assets/search_button.svg";
   import shareButton from "./assets/share_button.svg";
   import githubLogo from "./assets/github_logo.svg";
@@ -160,6 +161,13 @@
     }
     playerEnabled = true;
     scrollVideoIntoView(video.contentId);
+  }
+
+  function togglePlayer() {
+    playerEnabled = !playerEnabled;
+    if (playerEnabled && videoPlaying != null) {
+      scrollVideoIntoView(videoPlaying.contentId);
+    }
   }
 
   async function scrollVideoIntoView(contentId: string) {
@@ -340,6 +348,22 @@
             </div>
           </div>
         </div>
+        {#if videoPlaying != null}
+          <button
+            class="btn btn-ghost"
+            type="button"
+            title={playerEnabled ? "動画プレーヤーを閉じる": "再生中の動画に戻る"}
+            aria-label={playerEnabled ? "動画プレーヤーを閉じる": "再生中の動画に戻る"}
+            onclick={togglePlayer}
+          >
+            <img
+              alt=""
+              aria-hidden="true"
+              class="h-4 mix-blend-difference"
+              src={togglePlayerButton}
+            />
+          </button>
+        {/if}
         <button
           class="btn btn-ghost"
           type="button"
