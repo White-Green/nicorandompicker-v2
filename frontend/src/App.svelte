@@ -280,7 +280,7 @@
 </script>
 
 <div class="grid h-dvh grid-rows-[auto_minmax(0,1fr)] overflow-hidden">
-  <div class="navbar bg-base-200 z-1">
+  <div class="navbar bg-base-200 z-1 px-0">
     <div class="ps-4">
       <a class="text-lg font-bold" href="/">NicoRandomPicker</a>
     </div>
@@ -298,13 +298,13 @@
         alt="GitHub Logo"
       />
     </a>
-    <div class="flex grow justify-end px-2">
+    <div class="flex grow justify-end pe-2">
       <div class="flex items-stretch">
         <div bind:this={shareDropdown} class="dropdown dropdown-end">
           <div
             tabindex="0"
             role="button"
-            class="btn btn-ghost"
+            class="btn btn-ghost px-3"
             title="検索結果を共有"
           >
             <img
@@ -350,7 +350,7 @@
         </div>
         {#if videoPlaying != null}
           <button
-            class="btn btn-ghost"
+            class="btn btn-ghost px-1"
             type="button"
             title={playerEnabled
               ? "動画プレーヤーを閉じる"
@@ -369,7 +369,7 @@
           </button>
         {/if}
         <button
-          class="btn btn-ghost"
+          class="btn btn-ghost px-3"
           type="button"
           title={`検索メニューを${formExpand ? "閉じる" : "開く"}`}
           onclick={() => (formExpand = !formExpand)}
