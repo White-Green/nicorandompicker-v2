@@ -31,7 +31,7 @@
     "svelte-check": "^4.4.8",
     "tailwindcss": "^4.3.0",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.59.3",
+    "typescript-eslint": "^8.59.4",
     "vite": "^6.1.0",
     "wrangler": "^4.92.0"
   },
