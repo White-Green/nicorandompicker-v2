@@ -38,7 +38,7 @@ rand = { default-features = false, features = [
 ], version = "0.10.1" }
 reqwest = "0.13.3"
 serde = { features = ["derive"], version = "1.0.228" }
-serde_json = "1.0.149"
+serde_json = "1.0.150"
 serde_urlencoded = "0.7.1"
 thiserror = "2.0.18"
 time = { default-features = false, features = [
