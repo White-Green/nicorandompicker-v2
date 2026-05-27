@@ -383,13 +383,9 @@
       </div>
     </div>
   </div>
-  <div class="body h-full min-h-0 overflow-hidden @container-[size]">
-    <main
-      class={`main_layout grid h-full min-h-0 overflow-hidden grid-cols-1 grid-rows-[minmax(0,1fr)_auto] xl:grid-rows-1 ${playerEnabled ? "xl:grid-cols-[minmax(0,min(calc(100cqw-360px),max(0px,calc((100cqh-10rem)*16/9))))_minmax(360px,1fr)]" : ""}`}
-    >
-      <div
-        class={`${playerEnabled ? "" : "hidden"} row-start-2 min-h-0 xl:col-start-1 xl:row-start-1`}
-      >
+  <div class="body h-full min-h-0 overflow-hidden">
+    <main class="main_layout h-full min-h-0 overflow-hidden">
+      <div class={`player_area ${playerEnabled ? "" : "hidden"}`}>
         <EmbeddedPlayer
           bind:selectedVideo={videoPlaying}
           bind:loopType
@@ -398,11 +394,9 @@
           onClose={() => (playerEnabled = false)}
         />
       </div>
-      <div
-        class={`row-start-1 min-h-0 overflow-y-auto w-full ${playerEnabled ? "xl:col-start-2" : "xl:col-start-1"}`}
-      >
+      <div class="result_area">
         <div
-          class={`m-4 grid grid-cols-[repeat(auto-fit,minmax(320px,1fr))] gap-4 ${playerEnabled ? "xl:ml-0" : ""}`}
+          class="m-4 grid grid-cols-[repeat(auto-fit,minmax(320px,1fr))] gap-4"
         >
           {#each videos as video (video.contentId)}
             <VideoResultItem
@@ -454,3 +448,49 @@
     <ToastContainer />
   </div>
 </div>
+
+<style>
+  .body {
+    container: app-body / size;
+  }
+
+  .main_layout {
+    display: grid;
+    grid-template-rows: 1fr;
+    grid-template-columns:
+      min(calc((100cqh - 11em) * 16 / 9 + 1em), calc(100cqw - 400px))
+      1fr;
+  }
+
+  .player_area {
+    padding: 1em 0 1em 1em;
+    grid-column: 1 / 2;
+    grid-row: 1 / 2;
+  }
+
+  .result_area {
+    overflow-y: auto;
+    grid-column: 2 / 3;
+    grid-row: 1 / 2;
+  }
+
+  @container app-body (height > calc(100cqw * 9 / 16 + 500px)) {
+    .main_layout {
+      display: grid;
+      grid-template-rows: 1fr auto;
+      grid-template-columns: 1fr;
+    }
+
+    .player_area {
+      padding: 1em;
+      grid-column: 1 / 2;
+      grid-row: 2 / 3;
+    }
+
+    .result_area {
+      overflow-y: auto;
+      grid-column: 1 / 2;
+      grid-row: 1 / 2;
+    }
+  }
+</style>

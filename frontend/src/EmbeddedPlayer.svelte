@@ -125,13 +125,13 @@
 </script>
 
 <aside
-  class="grid min-h-0 w-full content-end grid-rows-[auto_3rem_4rem] gap-4 p-4 xl:h-full xl:w-auto xl:max-w-full xl:grid-rows-[minmax(0,1fr)_3rem_4rem]"
+  class="grid min-h-0 w-full h-full content-end grid-rows-[minmax(0,1fr)_3rem_4rem] gap-4"
 >
   {#if selectedVideo}
-    <div class="grid min-h-0 content-end xl:max-w-full">
+    <div class="grid min-h-0 content-end">
       <iframe
         bind:this={playerFrame}
-        class="aspect-video w-full border-0 xl:max-w-full"
+        class="aspect-video w-full border-0"
         title="nicovideo_player"
         src={`https://embed.nicovideo.jp/watch/${selectedVideo.contentId}?jsapi=1`}
         allowfullscreen
