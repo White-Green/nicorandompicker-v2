@@ -20,7 +20,7 @@ axum-extra = { default-features = false, features = [
   "cookie-signed",
 ], version = "0.12.6" }
 base64 = "0.22.1"
-brotli = "8.0.2"
+brotli = "8.0.3"
 console_error_panic_hook = "0.1.7"
 getrandom_0_2_17 = { default-features = false, features = [
   "js",
