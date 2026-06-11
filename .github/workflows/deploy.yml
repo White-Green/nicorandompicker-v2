@@ -65,7 +65,7 @@ jobs:
       - name: Resolve worker-build version
         id: worker-build-version
         run: |
-          VER=$(curl https://index.crates.io/wo/rk/worker-build | jq -r 'select(.yanked == false) | .vers' | sort -V | tail -n 1)
+          VER=$(cargo metadata --no-deps --format-version 1 | jq -er '.packages[0].metadata["cargo-binaries"]["worker-build"]')
           echo "version=$VER" >> $GITHUB_OUTPUT
           echo "worker-build ${VER}"
 

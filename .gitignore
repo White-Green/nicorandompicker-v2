@@ -15,6 +15,7 @@
 !/package.json
 !/pnpm-lock.yaml
 !/prettier.config.js
+!/renovate.json5
 !/rustfmt.toml
 !/taplo.toml
 !/tsconfig.json

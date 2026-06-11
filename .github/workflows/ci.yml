@@ -130,10 +130,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6.0.3
 
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
       - name: Resolve taplo-cli version
         id: taplo-version
         run: |
-          VER=$(curl https://index.crates.io/ta/pl/taplo-cli | jq -r 'select(.yanked == false) | .vers' | sort -V | tail -n 1)
+          VER=$(cargo metadata --no-deps --format-version 1 | jq -er '.packages[0].metadata["cargo-binaries"]["taplo-cli"]')
           echo "version=$VER" >> $GITHUB_OUTPUT
           echo "taplo-cli ${VER}"
 
@@ -144,10 +147,6 @@ jobs:
           path: |
             ~/.cargo/bin/taplo
           key: ${{ runner.os }}-taplo-${{ steps.taplo-version.outputs.version }}
-
-      - name: Setup Rust
-        if: steps.cache-taplo.outputs.cache-hit != 'true'
-        uses: dtolnay/rust-toolchain@stable
 
       - name: Install taplo
         if: steps.cache-taplo.outputs.cache-hit != 'true'
@@ -270,7 +269,7 @@ jobs:
       - name: Resolve worker-build version
         id: worker-build-version
         run: |
-          VER=$(curl https://index.crates.io/wo/rk/worker-build | jq -r 'select(.yanked == false) | .vers' | sort -V | tail -n 1)
+          VER=$(cargo metadata --no-deps --format-version 1 | jq -er '.packages[0].metadata["cargo-binaries"]["worker-build"]')
           echo "version=$VER" >> $GITHUB_OUTPUT
           echo "worker-build ${VER}"
 
