@@ -26,12 +26,12 @@ axum-extra = { default-features = false, features = [
 base64 = "0.22.1"
 brotli = "8.0.3"
 console_error_panic_hook = "0.1.7"
-getrandom_0_2_17 = { default-features = false, features = [
+getrandom_0_2 = { default-features = false, features = [
   "js",
-], package = "getrandom", version = "0.2.17" }
-getrandom_0_4_2 = { default-features = false, features = [
+], package = "getrandom", version = "~0.2.17" }
+getrandom_0_4 = { default-features = false, features = [
   "wasm_js",
-], package = "getrandom", version = "0.4.2" }
+], package = "getrandom", version = "~0.4.2" }
 http = "1.4.1"
 js-sys = "0.3.97"
 nom = "8.0.0"
