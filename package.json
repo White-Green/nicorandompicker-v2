@@ -35,13 +35,6 @@
     "vite": "^6.1.0",
     "wrangler": "^4.98.0"
   },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "esbuild",
-      "sharp",
-      "workerd"
-    ]
-  },
   "dependencies": {
     "valibot": "^1.4.1"
   }
