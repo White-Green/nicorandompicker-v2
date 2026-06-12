@@ -43,5 +43,16 @@
       versioningTemplate: "cargo",
       depTypeTemplate: "binary",
     },
+    // ghalint version pinned in the GitHub Actions lint workflow.
+    {
+      customType: "regex",
+      managerFilePatterns: ["/^\\.github/workflows/ci\\.yml$/"],
+      matchStrings: [
+        "GHALINT_VERSION:\\s*(?<currentValue>v?\\d+\\.\\d+\\.\\d+)",
+      ],
+      depNameTemplate: "suzuki-shunsuke/ghalint",
+      datasourceTemplate: "github-releases",
+      depTypeTemplate: "binary",
+    },
   ],
 }

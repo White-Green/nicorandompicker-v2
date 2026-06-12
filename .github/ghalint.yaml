@@ -1,0 +1,7 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/suzuki-shunsuke/ghalint/v1.5.6/json-schema/ghalint.json
+excludes:
+  - policy_name: action_ref_should_be_full_length_commit_sha
+    workflow_file_path: .github/workflows/ci.yml
+    job_name: github-actions-lint
+    step_id: actionlint
+    action_name: docker://rhysd/actionlint
