@@ -4,7 +4,7 @@
   "license": "SEE LICENSE IN LICENSE",
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@11.6.0",
+  "packageManager": "pnpm@11.7.0",
   "scripts": {
     "dev": "concurrently -k -n vite,worker -c cyan,green \"pnpm dev:frontend\" \"pnpm dev:worker\"",
     "dev:frontend": "vite --host 0.0.0.0 --port 5173",
