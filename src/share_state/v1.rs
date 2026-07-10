@@ -275,8 +275,8 @@ fn parse_share_state(input: &[u8]) -> ParseResult<'_, ShareStateV1> {
 fn write_bytes(output: &mut Vec<u8>, bytes: &[u8]) {
     for &b in bytes.iter() {
         match b {
-            0 => output.extend([b'\\', b'0']),
-            b'\\' => output.extend([b'\\', b'\\']),
+            0 => output.extend(*b"\\0"),
+            b'\\' => output.extend(*b"\\\\"),
             b => output.push(b),
         }
     }
