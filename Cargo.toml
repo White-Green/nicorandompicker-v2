@@ -61,6 +61,6 @@ worker = { features = ["axum", "http"], version = "0.8.1" }
 opt-level = "s"
 
 [dev-dependencies]
-pollster = "0.4.0"
+pollster = "1.0.0"
 proptest = "1.11.0"
 time = { default-features = false, features = ["macros"], version = "0.3.47" }
