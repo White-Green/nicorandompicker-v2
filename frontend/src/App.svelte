@@ -107,9 +107,9 @@
   }
 
   async function restoreSharedUrl(): Promise<boolean> {
-    const data = new URLSearchParams(window.location.search).get("data");
-    const fragment = new URLSearchParams(window.location.hash.slice(1));
-    const redirectedFromLegacyApp = fragment.get("from") === "legacy";
+    const params = new URLSearchParams(window.location.search);
+    const data = params.get("data");
+    const redirectedFromLegacyApp = params.has("redirect");
     history.replaceState(null, "", window.location.pathname);
     if (redirectedFromLegacyApp) {
       notify(
