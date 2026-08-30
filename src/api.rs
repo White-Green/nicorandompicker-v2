@@ -69,21 +69,20 @@ pub fn router(state: AppState) -> Result<Router> {
 
     Ok(Router::new()
         .merge(protected_routes)
-        .merge(share_state_routes())
+        .merge(
+            Router::new()
+                .route("/encode_share_state", post(encode_share_state::handle))
+                .route_layer(share_state_cors()),
+        )
         .route("/turnstile/verify", post(turnstile::handle))
         .with_state(state))
 }
 
-fn share_state_routes<S>() -> Router<S>
-where
-    S: Clone + Send + Sync + 'static,
-{
-    Router::new().route("/encode_share_state", post(encode_share_state::handle)).route_layer(
-        CorsLayer::new()
-            .allow_origin(HeaderValue::from_static(LEGACY_APP_ORIGIN))
-            .allow_methods([Method::POST])
-            .allow_headers([CONTENT_TYPE]),
-    )
+fn share_state_cors() -> CorsLayer {
+    CorsLayer::new()
+        .allow_origin(HeaderValue::from_static(LEGACY_APP_ORIGIN))
+        .allow_methods([Method::POST])
+        .allow_headers([CONTENT_TYPE])
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -115,7 +114,9 @@ mod tests {
 
     #[test]
     fn share_state_encoding_allows_requests_from_legacy_app() {
-        let app: Router = share_state_routes();
+        let app = Router::new()
+            .route("/encode_share_state", post(encode_share_state::handle))
+            .route_layer(share_state_cors());
         let response = pollster::block_on(
             app.oneshot(
                 Request::builder()
