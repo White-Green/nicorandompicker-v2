@@ -4,8 +4,13 @@ use axum::response::IntoResponse;
 use axum::routing::post;
 use axum::{Json, Router, middleware};
 use axum_extra::extract::cookie::Key;
+use http::header::CONTENT_TYPE;
+use http::{HeaderValue, Method};
 use std::sync::Arc;
+use tower_http::cors::CorsLayer;
 use worker::{RateLimiter, Result};
+
+const LEGACY_APP_ORIGIN: &str = "https://white-green.github.io";
 
 mod decode_share_state;
 mod encode_share_state;
@@ -64,7 +69,15 @@ pub fn router(state: AppState) -> Result<Router> {
 
     Ok(Router::new()
         .merge(protected_routes)
-        .route("/encode_share_state", post(encode_share_state::handle))
+        .route(
+            "/encode_share_state",
+            post(encode_share_state::handle).layer(
+                CorsLayer::new()
+                    .allow_origin(HeaderValue::from_static(LEGACY_APP_ORIGIN))
+                    .allow_methods([Method::POST])
+                    .allow_headers([CONTENT_TYPE]),
+            ),
+        )
         .route("/turnstile/verify", post(turnstile::handle))
         .with_state(state))
 }
