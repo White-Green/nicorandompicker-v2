@@ -1,4 +1,4 @@
-use crate::api::AppState;
+use crate::api::ApiState;
 use crate::api::session::SessionId;
 use axum::Extension;
 use axum::body::{Body, to_bytes};
@@ -6,19 +6,20 @@ use axum::extract::State;
 use axum::middleware::Next;
 use axum::response::IntoResponse;
 use http::{HeaderMap, HeaderValue, Request, Response, StatusCode, header};
+use std::error::Error;
 
 const TURNSTILE_RECOMMENDED_HEADER: &str = "NRP-Turnstile-Recommended";
 
 #[tracing::instrument(skip_all, fields(method = %request.method(), path = %request.uri().path()))]
-pub(super) async fn middleware(
-    State(state): State<AppState>,
+pub(super) async fn middleware<S: ApiState>(
+    State(state): State<S>,
     session_id: Option<Extension<SessionId>>,
     request: Request<Body>,
     next: Next,
-) -> Result<Response<Body>, RateLimitError> {
+) -> Result<Response<Body>, RateLimitError<S::Err>> {
     let (rate_limit_kind, actor_kind) = if let Some(Extension(session_id)) = session_id {
-        let outcome = state.authenticated_rate_limiter.limit(format!("session:{}", session_id.as_str())).await?;
-        if !outcome.success {
+        let allowed = state.authenticated_rate_limit(format!("session:{}", session_id.as_str())).await?;
+        if !allowed {
             tracing::warn!(
                 actor_kind = "session",
                 rate_limit_kind = ?RateLimitKind::Authenticated,
@@ -30,8 +31,8 @@ pub(super) async fn middleware(
         (RateLimitKind::Authenticated, "session")
     } else {
         let ip = client_ip(request.headers());
-        let outcome = state.anonymous_rate_limiter.limit(ip).await?;
-        if !outcome.success {
+        let allowed = state.anonymous_rate_limit(ip).await?;
+        if !allowed {
             tracing::warn!(
                 actor_kind = "ip",
                 rate_limit_kind = ?RateLimitKind::Anonymous,
@@ -94,14 +95,17 @@ impl RateLimitKind {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub(super) enum RateLimitError {
+pub(super) enum RateLimitError<E> {
     #[error("rate limit exceeded")]
     Exceeded(RateLimitKind),
     #[error("rate limiter failed: {0}")]
-    Worker(#[from] worker::Error),
+    Worker(#[from] E),
 }
 
-impl IntoResponse for RateLimitError {
+impl<E> IntoResponse for RateLimitError<E>
+where
+    E: Error,
+{
     fn into_response(self) -> axum::response::Response {
         match self {
             RateLimitError::Exceeded(kind) => {
