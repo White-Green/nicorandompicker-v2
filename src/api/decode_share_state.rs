@@ -1,4 +1,4 @@
-use crate::api::AppState;
+use crate::api::{ApiState, SnapshotBackend};
 use crate::share_state::{DecodeError, SearchState};
 use crate::snapshot::response::VideoSearchResult;
 use axum::Json;
@@ -33,7 +33,7 @@ impl IntoResponse for Error {
 
 #[worker::send]
 #[tracing::instrument(skip_all)]
-pub(super) async fn handle(State(mut state): State<AppState>, shared: String) -> Result<Json<DecodedShareState>, Error> {
+pub(super) async fn handle<S: ApiState>(State(state): State<S>, shared: String) -> Result<Json<DecodedShareState>, Error> {
     tracing::info!(shared_len = shared.len(), "decode share state request started");
     let share_state = crate::share_state::decode(&shared)?;
     let ids = share_state.content_ids.iter().map(ToString::to_string).collect::<Vec<_>>();
@@ -42,7 +42,7 @@ pub(super) async fn handle(State(mut state): State<AppState>, shared: String) ->
         content_id_count = ids.len(),
         "decode share state parsed"
     );
-    let details = state.snapshot.get_details(&ids).await?;
+    let details = state.snapshot().get_details(&ids).await?;
     let contents = ids.into_iter().filter_map(|id| details.get(&id).cloned()).collect::<Vec<_>>();
     tracing::info!(result_count = contents.len(), "decode share state request completed");
 
