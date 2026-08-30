@@ -52,7 +52,9 @@ time = { default-features = false, features = [
   "wasm-bindgen",
 ], version = "0.3.47" }
 tower = { default-features = false, features = ["util"], version = "0.5.3" }
-tower-http = { default-features = false, features = ["cors"], version = "0.6.11" }
+tower-http = { default-features = false, features = [
+  "cors",
+], version = "0.6.11" }
 tracing = "0.1.44"
 tracing-subscriber = "0.3.23"
 tracing-web = "0.1.3"
