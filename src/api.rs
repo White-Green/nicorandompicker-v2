@@ -4,8 +4,13 @@ use axum::response::IntoResponse;
 use axum::routing::post;
 use axum::{Json, Router, middleware};
 use axum_extra::extract::cookie::Key;
+use http::header::CONTENT_TYPE;
+use http::{HeaderValue, Method};
 use std::sync::Arc;
+use tower_http::cors::CorsLayer;
 use worker::{RateLimiter, Result};
+
+const LEGACY_APP_ORIGIN: &str = "https://white-green.github.io";
 
 mod decode_share_state;
 mod encode_share_state;
@@ -64,9 +69,21 @@ pub fn router(state: AppState) -> Result<Router> {
 
     Ok(Router::new()
         .merge(protected_routes)
-        .route("/encode_share_state", post(encode_share_state::handle))
+        .merge(share_state_routes())
         .route("/turnstile/verify", post(turnstile::handle))
         .with_state(state))
+}
+
+fn share_state_routes<S>() -> Router<S>
+where
+    S: Clone + Send + Sync + 'static,
+{
+    Router::new().route("/encode_share_state", post(encode_share_state::handle)).route_layer(
+        CorsLayer::new()
+            .allow_origin(HeaderValue::from_static(LEGACY_APP_ORIGIN))
+            .allow_methods([Method::POST])
+            .allow_headers([CONTENT_TYPE]),
+    )
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -87,3 +104,35 @@ impl IntoResponse for ApiError {
 }
 
 type ApiResult<T> = Result<Json<T>, ApiError>;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axum::body::Body;
+    use http::header::{ACCESS_CONTROL_ALLOW_HEADERS, ACCESS_CONTROL_ALLOW_METHODS, ACCESS_CONTROL_ALLOW_ORIGIN};
+    use http::{Request, StatusCode};
+    use tower::ServiceExt;
+
+    #[test]
+    fn share_state_encoding_allows_requests_from_legacy_app() {
+        let app: Router = share_state_routes();
+        let response = pollster::block_on(
+            app.oneshot(
+                Request::builder()
+                    .method(Method::OPTIONS)
+                    .uri("/encode_share_state")
+                    .header("origin", LEGACY_APP_ORIGIN)
+                    .header("access-control-request-method", "POST")
+                    .header("access-control-request-headers", "content-type")
+                    .body(Body::empty())
+                    .unwrap(),
+            ),
+        )
+        .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(response.headers()[ACCESS_CONTROL_ALLOW_ORIGIN], LEGACY_APP_ORIGIN);
+        assert_eq!(response.headers()[ACCESS_CONTROL_ALLOW_METHODS], "POST");
+        assert_eq!(response.headers()[ACCESS_CONTROL_ALLOW_HEADERS], "content-type");
+    }
+}
