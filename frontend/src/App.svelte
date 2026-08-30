@@ -107,8 +107,16 @@
   }
 
   async function restoreSharedUrl(): Promise<boolean> {
-    const data = new URLSearchParams(window.location.search).get("data");
+    const params = new URLSearchParams(window.location.search);
+    const data = params.get("data");
+    const redirectedFromLegacyApp = params.has("redirect");
     history.replaceState(null, "", window.location.pathname);
+    if (redirectedFromLegacyApp) {
+      notify(
+        "info",
+        "NicoRandomPickerのURLが変更されています。必要であればブックマークなどを更新してください。",
+      );
+    }
     if (data == null) return false;
     try {
       const result = await apiRequestWithRetry(
