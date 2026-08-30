@@ -114,7 +114,7 @@
     if (redirectedFromLegacyApp) {
       notify(
         "info",
-        "旧版から新版へ自動的に移動しました。ブックマークなどを更新してください。",
+        "NicoRandomPickerのURLが変更されています。必要であればブックマークなどを更新してください。",
       );
     }
     if (data == null) return false;
