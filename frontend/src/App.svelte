@@ -108,7 +108,14 @@
 
   async function restoreSharedUrl(): Promise<boolean> {
     const data = new URLSearchParams(window.location.search).get("data");
+    const redirectedFromLegacyApp = window.location.hash === "#redirect";
     history.replaceState(null, "", window.location.pathname);
+    if (redirectedFromLegacyApp) {
+      notify(
+        "info",
+        "旧版から新版へ自動的に移動しました。ブックマークなどを更新してください。",
+      );
+    }
     if (data == null) return false;
     try {
       const result = await apiRequestWithRetry(
