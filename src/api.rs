@@ -69,11 +69,7 @@ pub fn router(state: AppState) -> Result<Router> {
 
     Ok(Router::new()
         .merge(protected_routes)
-        .merge(
-            Router::new()
-                .route("/encode_share_state", post(encode_share_state::handle))
-                .route_layer(share_state_cors()),
-        )
+        .route("/encode_share_state", post(encode_share_state::handle).layer(share_state_cors()))
         .route("/turnstile/verify", post(turnstile::handle))
         .with_state(state))
 }
@@ -114,9 +110,7 @@ mod tests {
 
     #[test]
     fn share_state_encoding_allows_requests_from_legacy_app() {
-        let app = Router::new()
-            .route("/encode_share_state", post(encode_share_state::handle))
-            .route_layer(share_state_cors());
+        let app = Router::new().route("/encode_share_state", post(encode_share_state::handle).layer(share_state_cors()));
         let response = pollster::block_on(
             app.oneshot(
                 Request::builder()
