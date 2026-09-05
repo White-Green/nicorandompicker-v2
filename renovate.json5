@@ -47,28 +47,29 @@
       versioningTemplate: "cargo",
       depTypeTemplate: "binary",
     },
-    // actionlint version pinned in the GitHub Actions lint workflow.
+    // actionlint release tag used by the GitHub Actions lint job.
     {
-      customType: "regex",
-      managerFilePatterns: ["/^\\.github/workflows/ci\\.yml$/"],
-      matchStrings: [
-        "ACTIONLINT_VERSION:\\s*(?<currentValue>v?\\d+\\.\\d+\\.\\d+)",
-      ],
-      depNameTemplate: "rhysd/actionlint",
+      customType: "jsonata",
+      fileFormat: "yaml",
+      managerFilePatterns: ["/^\\.github\\/workflows\\/ci\\.yml$/"],
+      matchStrings: ['{ "depName": "actionlint", "currentValue": jobs."github-actions-lint".env.ACTIONLINT_VERSION }'],
+      depNameTemplate: "actionlint",
+      packageNameTemplate: "rhysd/actionlint",
       datasourceTemplate: "github-releases",
       versioningTemplate: "semver",
       depTypeTemplate: "binary",
     },
 
-    // ghalint version pinned in the GitHub Actions lint workflow.
+    // ghalint release tag used by the GitHub Actions lint job.
     {
-      customType: "regex",
-      managerFilePatterns: ["/^\\.github/workflows/ci\\.yml$/"],
-      matchStrings: [
-        "GHALINT_VERSION:\\s*(?<currentValue>v?\\d+\\.\\d+\\.\\d+)",
-      ],
-      depNameTemplate: "suzuki-shunsuke/ghalint",
+      customType: "jsonata",
+      fileFormat: "yaml",
+      managerFilePatterns: ["/^\\.github\\/workflows\\/ci\\.yml$/"],
+      matchStrings: ['{ "depName": "ghalint", "currentValue": jobs."github-actions-lint".env.GHALINT_VERSION }'],
+      depNameTemplate: "ghalint",
+      packageNameTemplate: "suzuki-shunsuke/ghalint",
       datasourceTemplate: "github-releases",
+      versioningTemplate: "semver",
       depTypeTemplate: "binary",
     },
 
