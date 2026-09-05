@@ -52,7 +52,9 @@
       customType: "jsonata",
       fileFormat: "yaml",
       managerFilePatterns: ["/^\\.github\\/workflows\\/ci\\.yml$/"],
-      matchStrings: ['{ "depName": "actionlint", "currentValue": jobs."github-actions-lint".env.ACTIONLINT_VERSION }'],
+      matchStrings: [
+        '{ "depName": "actionlint", "currentValue": jobs."github-actions-lint".env.ACTIONLINT_VERSION }',
+      ],
       depNameTemplate: "actionlint",
       packageNameTemplate: "rhysd/actionlint",
       datasourceTemplate: "github-releases",
@@ -65,7 +67,9 @@
       customType: "jsonata",
       fileFormat: "yaml",
       managerFilePatterns: ["/^\\.github\\/workflows\\/ci\\.yml$/"],
-      matchStrings: ['{ "depName": "ghalint", "currentValue": jobs."github-actions-lint".env.GHALINT_VERSION }'],
+      matchStrings: [
+        '{ "depName": "ghalint", "currentValue": jobs."github-actions-lint".env.GHALINT_VERSION }',
+      ],
       depNameTemplate: "ghalint",
       packageNameTemplate: "suzuki-shunsuke/ghalint",
       datasourceTemplate: "github-releases",
