@@ -36,7 +36,7 @@ jobs:
       - name: Install Chromium
         run: pnpm exec playwright install --with-deps chromium
 
-      - name: Capture Phase 1 states
+      - name: Capture visual states
         run: pnpm test:vrt:capture
 
       - name: Upload screenshots

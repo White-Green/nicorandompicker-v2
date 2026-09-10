@@ -144,7 +144,7 @@ jobs:
 
             [Download the HTML diff report](${process.env.RUN_URL}#artifacts)
 
-            Visual differences are informational during Phase 1 and do not block merging.`;
+            Visual differences are informational and do not block merging.`;
 
             const { data: comments } = await github.rest.issues.listComments({
               owner,
@@ -182,6 +182,6 @@ jobs:
               context: "VRT Report / compare",
               description: succeeded
                 ? "Visual differences are informational"
-                : "VRT reporting failed (non-blocking during Phase 1)",
+                : "VRT reporting failed (non-blocking)",
               target_url: process.env.RUN_URL,
             });

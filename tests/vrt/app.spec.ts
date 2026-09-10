@@ -50,6 +50,11 @@ const playerState: PersistedState = {
   player: { enabled: true, loopType: "Loop" },
 };
 
+const playerClosedState: PersistedState = {
+  ...playerState,
+  player: { ...playerState.player, enabled: false },
+};
+
 const thumbnails: Record<string, { from: string; to: string; label: string }> =
   {
     spring: { from: "#166534", to: "#86efac", label: "SPRING" },
@@ -58,7 +63,7 @@ const thumbnails: Record<string, { from: string; to: string; label: string }> =
     dawn: { from: "#9a3412", to: "#fdba74", label: "DAWN" },
   };
 
-test.describe("Phase 1 visual states", () => {
+test.describe("visual states", () => {
   test("empty", async ({ page }, testInfo) => {
     const unexpectedRequests = await preparePage(page, emptyState);
     await page.goto("/");
@@ -78,6 +83,39 @@ test.describe("Phase 1 visual states", () => {
     expect(unexpectedRequests).toEqual([]);
   });
 
+  test("result hover", async ({ page }, testInfo) => {
+    test.skip(
+      testInfo.project.name !== "desktop",
+      "Hover is a desktop-only visual state",
+    );
+    const unexpectedRequests = await preparePage(page, restoredState);
+    await page.goto("/");
+    const firstResult = page.locator('[id^="video-"]').first();
+    await expect(firstResult).toBeVisible();
+    await waitForImages(page);
+    await firstResult.hover();
+    await capture(page, testInfo.project.name, "result-hover");
+    expect(unexpectedRequests).toEqual([]);
+  });
+
+  test("result focus", async ({ page }, testInfo) => {
+    test.skip(
+      testInfo.project.name !== "mobile",
+      "Touch focus is a mobile-only visual state",
+    );
+    const unexpectedRequests = await preparePage(page, restoredState);
+    await page.goto("/");
+    const firstResultContent = page
+      .locator('[id^="video-"] .video_link_content')
+      .first();
+    await expect(firstResultContent).toBeVisible();
+    await waitForImages(page);
+    await firstResultContent.focus();
+    await expect(firstResultContent).toBeFocused();
+    await capture(page, testInfo.project.name, "result-focus");
+    expect(unexpectedRequests).toEqual([]);
+  });
+
   test("player open", async ({ page }, testInfo) => {
     const unexpectedRequests = await preparePage(page, playerState);
     await page.goto("/");
@@ -90,6 +128,19 @@ test.describe("Phase 1 visual states", () => {
     ).toBeVisible();
     await waitForImages(page);
     await capture(page, testInfo.project.name, "player-open");
+    expect(unexpectedRequests).toEqual([]);
+  });
+
+  test("player closed", async ({ page }, testInfo) => {
+    const unexpectedRequests = await preparePage(page, playerClosedState);
+    await page.goto("/");
+    await expect(page.locator('[id^="video-"]')).toHaveCount(
+      videoContents.length,
+    );
+    await expect(page.getByLabel("再生中の動画に戻る")).toBeVisible();
+    await expect(page.getByTitle("nicovideo_player")).not.toBeVisible();
+    await waitForImages(page);
+    await capture(page, testInfo.project.name, "player-closed");
     expect(unexpectedRequests).toEqual([]);
   });
 });

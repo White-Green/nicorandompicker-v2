@@ -36,13 +36,13 @@ export const videoContents = [
   },
   {
     contentId: "sm-vrt-004",
-    title: "朝焼けのサンプル映像【Phase 1】",
+    title: "朝焼けのサンプル映像【VRT】",
     viewCounter: 12_345,
     commentCounter: 678,
     mylistCounter: 90,
     likeCounter: 1_111,
     lengthSeconds: 92,
     thumbnailUrl: "https://vrt.invalid/thumbnails/dawn.svg",
-    tags: ["朝焼け", "サンプル", "Phase1"],
+    tags: ["朝焼け", "サンプル", "VRT"],
   },
 ] satisfies VideoContent[];
