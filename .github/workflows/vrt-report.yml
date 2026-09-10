@@ -10,7 +10,7 @@ permissions: {}
 env:
   VRT_WRANGLER_VERSION: "4.129.0"
   SEMDIFF_VERSION: v0.5.0
-  BASELINE_OBJECT_KEY: visual-regression/nicorandompicker-v2/baseline.tar.zst
+  BASELINE_OBJECT_KEY_PREFIX: visual-regression/nicorandompicker-v2/baselines
 
 jobs:
   publish_baseline:
@@ -60,7 +60,7 @@ jobs:
           wranglerVersion: ${{ env.VRT_WRANGLER_VERSION }}
           command: >-
             r2 object put
-            ${{ vars.VRT_CF_R2_BUCKET }}/${{ env.BASELINE_OBJECT_KEY }}
+            ${{ vars.VRT_CF_R2_BUCKET }}/${{ env.BASELINE_OBJECT_KEY_PREFIX }}/${{ github.event.workflow_run.head_sha }}
             --file ./baseline.tar.zst
             --remote
 
@@ -130,7 +130,7 @@ jobs:
           wranglerVersion: ${{ env.VRT_WRANGLER_VERSION }}
           command: >-
             r2 object get
-            ${{ vars.VRT_CF_R2_BUCKET }}/${{ env.BASELINE_OBJECT_KEY }}
+            ${{ vars.VRT_CF_R2_BUCKET }}/${{ env.BASELINE_OBJECT_KEY_PREFIX }}/${{ github.event.workflow_run.pull_requests[0].base.sha }}
             --file ./main-baseline.tar.zst
             --remote
 
@@ -149,23 +149,30 @@ jobs:
             --output-html ./report/index.html \
             --output-json ./report.json
 
-      - name: Publish report to Cloudflare Pages
+      - name: Configure report Worker previews
+        run: |
+          jq -n '{
+            name: "nicorandompicker-v2-vrt",
+            compatibility_date: "2026-09-10",
+            workers_dev: false,
+            preview_urls: true,
+            assets: { directory: "./report" }
+          }' > wrangler.vrt-report.json
+
+      - name: Publish report to Cloudflare Workers
+        id: publish_report
         uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4.0.0
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           wranglerVersion: ${{ env.VRT_WRANGLER_VERSION }}
-          command: >-
-            pages deploy
-            --project-name ${{ vars.VRT_CF_PAGES_PROJECT_NAME }}
-            --branch pr-${{ github.event.workflow_run.pull_requests[0].number }}
-            ./report
+          command: versions upload --config wrangler.vrt-report.json
 
       - name: Report result on pull request
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           PULL_REQUEST_NUMBER: ${{ github.event.workflow_run.pull_requests[0].number }}
-          VRT_PAGES_PROJECT_NAME: ${{ vars.VRT_CF_PAGES_PROJECT_NAME }}
+          VRT_REPORT_URL: ${{ steps.publish_report.outputs.deployment-url }}
         with:
           script: |
             const fs = require("fs");
@@ -180,7 +187,7 @@ jobs:
             |----------:|---------:|------:|--------:|
             | ${report.unchanged} | ${report.modified} | ${report.added} | ${report.deleted} |
 
-            [Open the HTML diff report](https://pr-${issue_number}.${process.env.VRT_PAGES_PROJECT_NAME}.pages.dev/)
+            [Open the HTML diff report](${process.env.VRT_REPORT_URL})
 
             Visual differences are informational and do not block merging.`;
 
