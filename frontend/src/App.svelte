@@ -392,7 +392,10 @@
     </div>
   </div>
   <div class="body h-full min-h-0 overflow-hidden">
-    <main class="main_layout h-full min-h-0 overflow-hidden">
+    <main
+      class="main_layout h-full min-h-0 overflow-hidden"
+      class:player_closed={!playerEnabled}
+    >
       <div class={`player_area ${playerEnabled ? "" : "hidden"}`}>
         <EmbeddedPlayer
           bind:selectedVideo={videoPlaying}
@@ -480,6 +483,14 @@
     overflow-y: auto;
     grid-column: 2 / 3;
     grid-row: 1 / 2;
+  }
+
+  .main_layout.player_closed {
+    grid-template-columns: 1fr;
+  }
+
+  .main_layout.player_closed .result_area {
+    grid-column: 1 / 2;
   }
 
   @container app-body (height > calc(100cqw * 9 / 16 + 500px)) {
