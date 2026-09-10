@@ -10,6 +10,7 @@ permissions: {}
 env:
   VRT_WRANGLER_VERSION: "4.129.0"
   SEMDIFF_VERSION: v0.5.0
+  # Keep this key extensionless to avoid stale reads when overwriting .zst keys: https://github.com/cloudflare/developer-platform/issues/53
   BASELINE_OBJECT_KEY: visual-regression/nicorandompicker-v2/baseline
 
 jobs:
@@ -60,7 +61,7 @@ jobs:
           wranglerVersion: ${{ env.VRT_WRANGLER_VERSION }}
           command: >-
             r2 object put
-            ${{ vars.VRT_CF_R2_BUCKET }}/${{ env.BASELINE_OBJECT_KEY }}
+            ${{ secrets.VRT_CF_R2_BUCKET }}/${{ env.BASELINE_OBJECT_KEY }}
             --file ./baseline.tar.zst
             --remote
 
@@ -130,7 +131,7 @@ jobs:
           wranglerVersion: ${{ env.VRT_WRANGLER_VERSION }}
           command: >-
             r2 object get
-            ${{ vars.VRT_CF_R2_BUCKET }}/${{ env.BASELINE_OBJECT_KEY }}
+            ${{ secrets.VRT_CF_R2_BUCKET }}/${{ env.BASELINE_OBJECT_KEY }}
             --file ./main-baseline.tar.zst
             --remote
 
@@ -181,13 +182,16 @@ jobs:
             const report = JSON.parse(fs.readFileSync("report.json", "utf8"));
             const marker = "<!-- nicorandompicker-vrt-report -->";
             const body = `${marker}
-            ## Visual Regression Test
+            ## Visual Regression Test Summary
 
-            | Unchanged | Modified | Added | Deleted |
-            |----------:|---------:|------:|--------:|
-            | ${report.unchanged} | ${report.modified} | ${report.added} | ${report.deleted} |
+            | Category  | Count               |
+            |-----------|---------------------|
+            | Unchanged | ${report.unchanged} |
+            | Modified  | ${report.modified}  |
+            | Added     | ${report.added}     |
+            | Deleted   | ${report.deleted}   |
 
-            [Open the HTML diff report](${process.env.VRT_REPORT_URL})
+            [Diff Report](${process.env.VRT_REPORT_URL})
 
             Visual differences are informational and do not block merging.`;
 
@@ -197,17 +201,27 @@ jobs:
               issue_number,
               per_page: 100,
             });
-            const previous = comments.find((comment) => comment.body?.includes(marker));
-            if (previous) {
-              await github.rest.issues.updateComment({
-                owner,
-                repo,
-                comment_id: previous.id,
-                body,
-              });
-            } else {
-              await github.rest.issues.createComment({ owner, repo, issue_number, body });
+            const oldComments = comments.filter((comment) =>
+              comment.body?.includes(marker),
+            );
+            const mutation = `
+              mutation($subjectId: ID!) {
+                minimizeComment(input: {
+                  subjectId: $subjectId,
+                  classifier: OUTDATED
+                }) {
+                  minimizedComment {
+                    isMinimized
+                    minimizedReason
+                  }
+                }
+              }
+            `;
+            for (const { node_id: subjectId } of oldComments) {
+              await github.graphql(mutation, { subjectId });
             }
+
+            await github.rest.issues.createComment({ owner, repo, issue_number, body });
 
       - name: Finalize non-blocking report status
         if: always()
