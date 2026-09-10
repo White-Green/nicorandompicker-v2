@@ -229,15 +229,12 @@ jobs:
         with:
           script: |
             const { owner, repo } = context.repo;
-            const succeeded = process.env.JOB_STATUS === "success";
+            const mapping = { success: "success", failure: "failure", cancelled: "error" };
             await github.rest.repos.createCommitStatus({
               owner,
               repo,
               sha: context.payload.workflow_run.head_sha,
-              state: "success",
+              state: mapping[process.env.JOB_STATUS],
               context: "VRT Report / compare",
-              description: succeeded
-                ? "Visual differences are informational"
-                : "VRT reporting failed (non-blocking)",
               target_url: process.env.RUN_URL,
             });
