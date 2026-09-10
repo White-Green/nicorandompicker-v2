@@ -85,7 +85,7 @@ test.describe("visual states", () => {
 
   test("result hover", async ({ page }, testInfo) => {
     test.skip(
-      testInfo.project.name !== "desktop",
+      !testInfo.project.name.startsWith("desktop-"),
       "Hover is a desktop-only visual state",
     );
     const unexpectedRequests = await preparePage(page, restoredState);
@@ -100,7 +100,7 @@ test.describe("visual states", () => {
 
   test("result focus", async ({ page }, testInfo) => {
     test.skip(
-      testInfo.project.name !== "mobile",
+      !testInfo.project.name.startsWith("mobile-"),
       "Touch focus is a mobile-only visual state",
     );
     const unexpectedRequests = await preparePage(page, restoredState);

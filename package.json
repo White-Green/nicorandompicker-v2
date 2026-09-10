@@ -14,7 +14,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "build:frontend": "vite build",
-    "test:vrt:capture": "node -e \"require('node:fs').rmSync('vrt-results',{recursive:true,force:true})\" && playwright test"
+    "test:vrt:capture": "playwright test"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

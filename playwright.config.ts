@@ -15,11 +15,24 @@ export default defineConfig({
   },
   projects: [
     {
-      name: "desktop",
+      name: "desktop-landscape",
       use: { viewport: { width: 1440, height: 900 } },
     },
     {
-      name: "mobile",
+      name: "desktop-portrait",
+      use: { viewport: { width: 900, height: 1440 } },
+    },
+    {
+      name: "mobile-landscape",
+      use: {
+        viewport: { width: 844, height: 390 },
+        deviceScaleFactor: 1,
+        hasTouch: true,
+        isMobile: true,
+      },
+    },
+    {
+      name: "mobile-portrait",
       use: {
         viewport: { width: 390, height: 844 },
         deviceScaleFactor: 1,

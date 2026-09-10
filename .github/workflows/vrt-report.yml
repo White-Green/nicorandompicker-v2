@@ -8,11 +8,83 @@ on:
 permissions: {}
 
 env:
+  VRT_WRANGLER_VERSION: "4.129.0"
   SEMDIFF_VERSION: v0.5.0
   SEMDIFF_SHA256: 172b1070488c70e15ebb2fabf8f77bc79f63e8648b15f277040a3ba86fb0fb3c
+  BASELINE_OBJECT_KEY: visual-regression/nicorandompicker-v2/baseline.tar.zst
 
 jobs:
-  report:
+  publish_baseline:
+    name: Publish baseline
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      statuses: write
+
+    steps:
+      - name: Mark baseline publication pending
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            await github.rest.repos.createCommitStatus({
+              owner,
+              repo,
+              sha: context.payload.workflow_run.head_sha,
+              state: "pending",
+              context: "VRT Report / publish baseline",
+              target_url: process.env.RUN_URL,
+            });
+
+      - name: Download captured screenshots
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: vrt-screenshots
+          path: actual
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+
+      - name: Pack baseline
+        run: tar -I 'zstd -19' -cf baseline.tar.zst -C actual .
+
+      - name: Upload baseline to Cloudflare R2
+        uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4.0.0
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: ${{ env.VRT_WRANGLER_VERSION }}
+          command: >-
+            r2 object put
+            ${{ vars.VRT_CF_R2_BUCKET }}/${{ env.BASELINE_OBJECT_KEY }}
+            --file ./baseline.tar.zst
+            --remote
+
+      - name: Finalize baseline publication status
+        if: always()
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          JOB_STATUS: ${{ job.status }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const mapping = { success: "success", failure: "failure", cancelled: "error" };
+            await github.rest.repos.createCommitStatus({
+              owner,
+              repo,
+              sha: context.payload.workflow_run.head_sha,
+              state: mapping[process.env.JOB_STATUS],
+              context: "VRT Report / publish baseline",
+              target_url: process.env.RUN_URL,
+            });
+
+  pr_checks:
     name: Compare and publish report
     if: >-
       github.event.workflow_run.conclusion == 'success' &&
@@ -26,41 +98,7 @@ jobs:
       statuses: write
 
     steps:
-      - name: Resolve pull request and baseline
-        id: context
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
-        with:
-          script: |
-            const { owner, repo } = context.repo;
-            const workflowRun = context.payload.workflow_run;
-            let pullRequest = workflowRun.pull_requests[0];
-            if (!pullRequest) {
-              const { data } = await github.rest.repos.listPullRequestsAssociatedWithCommit({
-                owner,
-                repo,
-                commit_sha: workflowRun.head_sha,
-              });
-              pullRequest = data.find((candidate) => candidate.state === "open");
-            }
-            if (!pullRequest) {
-              core.setFailed(`No open pull request found for ${workflowRun.head_sha}`);
-              return;
-            }
-
-            const { data: runs } = await github.rest.actions.listWorkflowRuns({
-              owner,
-              repo,
-              workflow_id: "vrt-capture.yml",
-              branch: context.payload.repository.default_branch,
-              event: "push",
-              status: "success",
-              per_page: 1,
-            });
-
-            core.setOutput("pull-request-number", pullRequest.number);
-            core.setOutput("baseline-run-id", runs.workflow_runs[0]?.id ?? "");
-
-      - name: Mark report pending
+      - name: Mark comparison pending
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
@@ -84,18 +122,26 @@ jobs:
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ github.token }}
 
-      - name: Download main baseline
-        if: steps.context.outputs.baseline-run-id != ''
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+      - name: Download baseline from Cloudflare R2
+        continue-on-error: true
+        uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4.0.0
         with:
-          name: vrt-screenshots
-          path: expected
-          run-id: ${{ steps.context.outputs.baseline-run-id }}
-          github-token: ${{ github.token }}
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: ${{ env.VRT_WRANGLER_VERSION }}
+          command: >-
+            r2 object get
+            ${{ vars.VRT_CF_R2_BUCKET }}/${{ env.BASELINE_OBJECT_KEY }}
+            --file ./main-baseline.tar.zst
+            --remote
 
       - name: Compare screenshots
         run: |
           mkdir -p expected report .github/tmp
+          if [ -f main-baseline.tar.zst ]; then
+            tar -xaf main-baseline.tar.zst -C expected
+          fi
+
           archive=".github/tmp/semdiff.tar.gz"
           download_url="https://github.com/White-Green/semdiff/releases/download/${SEMDIFF_VERSION}/semdiff-x86_64-unknown-linux-musl.tar.gz"
           curl -fsSL "${download_url}" --output "${archive}"
@@ -105,24 +151,23 @@ jobs:
             --output-html ./report/index.html \
             --output-json ./report.json
 
-      - name: Upload comparison report
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - name: Publish report to Cloudflare Pages
+        uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4.0.0
         with:
-          name: vrt-report-pr-${{ steps.context.outputs.pull-request-number }}
-          path: |
-            report
-            report.json
-          if-no-files-found: warn
-          retention-days: 30
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: ${{ env.VRT_WRANGLER_VERSION }}
+          command: >-
+            pages deploy
+            --project-name ${{ vars.VRT_CF_PAGES_PROJECT_NAME }}
+            --branch pr-${{ github.event.workflow_run.pull_requests[0].number }}
+            ./report
 
       - name: Report result on pull request
-        if: success()
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
-          PULL_REQUEST_NUMBER: ${{ steps.context.outputs.pull-request-number }}
-          BASELINE_RUN_ID: ${{ steps.context.outputs.baseline-run-id }}
-          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          PULL_REQUEST_NUMBER: ${{ github.event.workflow_run.pull_requests[0].number }}
+          VRT_PAGES_PROJECT_NAME: ${{ vars.VRT_CF_PAGES_PROJECT_NAME }}
         with:
           script: |
             const fs = require("fs");
@@ -130,19 +175,14 @@ jobs:
             const issue_number = Number(process.env.PULL_REQUEST_NUMBER);
             const report = JSON.parse(fs.readFileSync("report.json", "utf8"));
             const marker = "<!-- nicorandompicker-vrt-report -->";
-            const baseline = process.env.BASELINE_RUN_ID
-              ? `main capture run ${process.env.BASELINE_RUN_ID}`
-              : "an empty baseline (the first main capture will establish the baseline)";
             const body = `${marker}
             ## Visual Regression Test
-
-            Compared with ${baseline}.
 
             | Unchanged | Modified | Added | Deleted |
             |----------:|---------:|------:|--------:|
             | ${report.unchanged} | ${report.modified} | ${report.added} | ${report.deleted} |
 
-            [Download the HTML diff report](${process.env.RUN_URL}#artifacts)
+            [Open the HTML diff report](https://pr-${issue_number}.${process.env.VRT_PAGES_PROJECT_NAME}.pages.dev/)
 
             Visual differences are informational and do not block merging.`;
 
@@ -165,7 +205,7 @@ jobs:
             }
 
       - name: Finalize non-blocking report status
-        if: always() && steps.context.outputs.pull-request-number != ''
+        if: always()
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           JOB_STATUS: ${{ job.status }}

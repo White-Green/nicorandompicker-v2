@@ -24,7 +24,3 @@
 !/wrangler.toml
 !/playwright.config.ts
 !/tests
-
-/playwright-report/
-/test-results/
-/vrt-results/
