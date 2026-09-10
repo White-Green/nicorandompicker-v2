@@ -1,6 +1,8 @@
 # Visual regression capture
 
-The suite captures the empty state, restored result list, result hover/focus states, and open/closed player states. It uses mobile and desktop viewports in both portrait and landscape orientations. Hover and touch focus are captured only on the device class where they are relevant.
+The suite captures the empty state, restored result list, result hover/focus states, and open/closed player states. It uses mobile and desktop viewports in both portrait and landscape orientations, with every state captured in both light and dark color schemes. Hover and touch focus are captured only on the device class where they are relevant.
+
+This produces 40 screenshots: four shared states across four viewports and two themes (32), desktop hover across two orientations and two themes (4), and mobile focus across two orientations and two themes (4). Project and output-directory names include the theme, for example `desktop-landscape-light` and `desktop-landscape-dark`. Before each screenshot, the test verifies that the document's computed `color-scheme` matches the project theme.
 
 The tests seed `sessionStorage` with repository-managed `VideoContent` fixtures and intercept the restore API, thumbnails, and NicoNico player iframe. Any other external request is recorded as a test failure.
 

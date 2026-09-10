@@ -248,6 +248,9 @@ async function waitForImages(page: Page) {
 }
 
 async function capture(page: Page, projectName: string, name: string) {
+  const colorScheme = projectName.endsWith("-dark") ? "dark" : "light";
+  await expect(page.locator("html")).toHaveCSS("color-scheme", colorScheme);
+
   const outputDirectory = path.join("vrt-results", projectName);
   await mkdir(outputDirectory, { recursive: true });
   await page.screenshot({
