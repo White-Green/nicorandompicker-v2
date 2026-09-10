@@ -10,7 +10,6 @@ permissions: {}
 env:
   VRT_WRANGLER_VERSION: "4.129.0"
   SEMDIFF_VERSION: v0.5.0
-  # Keep this key extensionless to avoid stale reads when overwriting .zst keys: https://github.com/cloudflare/developer-platform/issues/53
   BASELINE_OBJECT_KEY: visual-regression/nicorandompicker-v2/baseline
 
 jobs:
@@ -191,9 +190,7 @@ jobs:
             | Added     | ${report.added}     |
             | Deleted   | ${report.deleted}   |
 
-            [Diff Report](${process.env.VRT_REPORT_URL})
-
-            Visual differences are informational and do not block merging.`;
+            [Diff Report](${process.env.VRT_REPORT_URL})`;
 
             const { data: comments } = await github.rest.issues.listComments({
               owner,
