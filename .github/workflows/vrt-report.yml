@@ -10,7 +10,6 @@ permissions: {}
 env:
   VRT_WRANGLER_VERSION: "4.129.0"
   SEMDIFF_VERSION: v0.5.0
-  SEMDIFF_SHA256: 172b1070488c70e15ebb2fabf8f77bc79f63e8648b15f277040a3ba86fb0fb3c
   BASELINE_OBJECT_KEY: visual-regression/nicorandompicker-v2/baseline.tar.zst
 
 jobs:
@@ -145,7 +144,6 @@ jobs:
           archive=".github/tmp/semdiff.tar.gz"
           download_url="https://github.com/White-Green/semdiff/releases/download/${SEMDIFF_VERSION}/semdiff-x86_64-unknown-linux-musl.tar.gz"
           curl -fsSL "${download_url}" --output "${archive}"
-          echo "${SEMDIFF_SHA256}  ${archive}" | sha256sum --check
           tar -xaf "${archive}" -C .github/tmp
           .github/tmp/semdiff/semdiff ./expected ./actual \
             --output-html ./report/index.html \

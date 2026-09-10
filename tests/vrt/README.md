@@ -16,3 +16,5 @@ pnpm test:vrt:capture
 Screenshots are written to `vrt-results/`. Pull requests upload those images from the unprivileged capture workflow. The `workflow_run` report workflow compares them with the baseline stored in Cloudflare R2, publishes the HTML diff to Cloudflare Pages, and links it from the pull request. Visual differences are non-blocking.
 
 The report workflow reuses the repository's `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` secrets. It also requires `VRT_CF_R2_BUCKET` and `VRT_CF_PAGES_PROJECT_NAME` repository variables. The bucket and Pages project must exist before the report workflow runs.
+
+Renovate custom managers track the report workflow's wrangler and semdiff versions. Wrangler's workflow pin is grouped with the `package.json` dependency so both references are updated together.
