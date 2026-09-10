@@ -122,6 +122,7 @@ jobs:
           github-token: ${{ github.token }}
 
       - name: Download baseline from Cloudflare R2
+        id: download_baseline
         continue-on-error: true
         uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4.0.0
         with:
@@ -135,9 +136,11 @@ jobs:
             --remote
 
       - name: Compare screenshots
+        env:
+          BASELINE_DOWNLOAD_OUTCOME: ${{ steps.download_baseline.outcome }}
         run: |
           mkdir -p expected report .github/tmp
-          if [ -f main-baseline.tar.zst ]; then
+          if [ "${BASELINE_DOWNLOAD_OUTCOME}" = "success" ]; then
             tar -xaf main-baseline.tar.zst -C expected
           fi
 
