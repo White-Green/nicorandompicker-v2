@@ -1,0 +1,187 @@
+name: VRT Report
+
+on:
+  workflow_run: # zizmor: ignore[dangerous-triggers] This privileged reporter never checks out or executes pull request code.
+    workflows: ["VRT Capture"]
+    types: [completed]
+
+permissions: {}
+
+env:
+  SEMDIFF_VERSION: v0.5.0
+  SEMDIFF_SHA256: 172b1070488c70e15ebb2fabf8f77bc79f63e8648b15f277040a3ba86fb0fb3c
+
+jobs:
+  report:
+    name: Compare and publish report
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      issues: write
+      pull-requests: write
+      statuses: write
+
+    steps:
+      - name: Resolve pull request and baseline
+        id: context
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const workflowRun = context.payload.workflow_run;
+            let pullRequest = workflowRun.pull_requests[0];
+            if (!pullRequest) {
+              const { data } = await github.rest.repos.listPullRequestsAssociatedWithCommit({
+                owner,
+                repo,
+                commit_sha: workflowRun.head_sha,
+              });
+              pullRequest = data.find((candidate) => candidate.state === "open");
+            }
+            if (!pullRequest) {
+              core.setFailed(`No open pull request found for ${workflowRun.head_sha}`);
+              return;
+            }
+
+            const { data: runs } = await github.rest.actions.listWorkflowRuns({
+              owner,
+              repo,
+              workflow_id: "vrt-capture.yml",
+              branch: context.payload.repository.default_branch,
+              event: "push",
+              status: "success",
+              per_page: 1,
+            });
+
+            core.setOutput("pull-request-number", pullRequest.number);
+            core.setOutput("baseline-run-id", runs.workflow_runs[0]?.id ?? "");
+
+      - name: Mark report pending
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            await github.rest.repos.createCommitStatus({
+              owner,
+              repo,
+              sha: context.payload.workflow_run.head_sha,
+              state: "pending",
+              context: "VRT Report / compare",
+              target_url: process.env.RUN_URL,
+            });
+
+      - name: Download current screenshots
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: vrt-screenshots
+          path: actual
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+
+      - name: Download main baseline
+        if: steps.context.outputs.baseline-run-id != ''
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: vrt-screenshots
+          path: expected
+          run-id: ${{ steps.context.outputs.baseline-run-id }}
+          github-token: ${{ github.token }}
+
+      - name: Compare screenshots
+        run: |
+          mkdir -p expected report .github/tmp
+          archive=".github/tmp/semdiff.tar.gz"
+          download_url="https://github.com/White-Green/semdiff/releases/download/${SEMDIFF_VERSION}/semdiff-x86_64-unknown-linux-musl.tar.gz"
+          curl -fsSL "${download_url}" --output "${archive}"
+          echo "${SEMDIFF_SHA256}  ${archive}" | sha256sum --check
+          tar -xaf "${archive}" -C .github/tmp
+          .github/tmp/semdiff/semdiff ./expected ./actual \
+            --output-html ./report/index.html \
+            --output-json ./report.json
+
+      - name: Upload comparison report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: vrt-report-pr-${{ steps.context.outputs.pull-request-number }}
+          path: |
+            report
+            report.json
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Report result on pull request
+        if: success()
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          PULL_REQUEST_NUMBER: ${{ steps.context.outputs.pull-request-number }}
+          BASELINE_RUN_ID: ${{ steps.context.outputs.baseline-run-id }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        with:
+          script: |
+            const fs = require("fs");
+            const { owner, repo } = context.repo;
+            const issue_number = Number(process.env.PULL_REQUEST_NUMBER);
+            const report = JSON.parse(fs.readFileSync("report.json", "utf8"));
+            const marker = "<!-- nicorandompicker-vrt-report -->";
+            const baseline = process.env.BASELINE_RUN_ID
+              ? `main capture run ${process.env.BASELINE_RUN_ID}`
+              : "an empty baseline (the first main capture will establish the baseline)";
+            const body = `${marker}
+            ## Visual Regression Test
+
+            Compared with ${baseline}.
+
+            | Unchanged | Modified | Added | Deleted |
+            |----------:|---------:|------:|--------:|
+            | ${report.unchanged} | ${report.modified} | ${report.added} | ${report.deleted} |
+
+            [Download the HTML diff report](${process.env.RUN_URL}#artifacts)
+
+            Visual differences are informational during Phase 1 and do not block merging.`;
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner,
+              repo,
+              issue_number,
+              per_page: 100,
+            });
+            const previous = comments.find((comment) => comment.body?.includes(marker));
+            if (previous) {
+              await github.rest.issues.updateComment({
+                owner,
+                repo,
+                comment_id: previous.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({ owner, repo, issue_number, body });
+            }
+
+      - name: Finalize non-blocking report status
+        if: always() && steps.context.outputs.pull-request-number != ''
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          JOB_STATUS: ${{ job.status }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const succeeded = process.env.JOB_STATUS === "success";
+            await github.rest.repos.createCommitStatus({
+              owner,
+              repo,
+              sha: context.payload.workflow_run.head_sha,
+              state: "success",
+              context: "VRT Report / compare",
+              description: succeeded
+                ? "Visual differences are informational"
+                : "VRT reporting failed (non-blocking during Phase 1)",
+              target_url: process.env.RUN_URL,
+            });

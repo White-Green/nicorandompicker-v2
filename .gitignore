@@ -22,3 +22,9 @@
 !/tsconfig.json
 !/vite.config.ts
 !/wrangler.toml
+!/playwright.config.ts
+!/tests
+
+/playwright-report/
+/test-results/
+/vrt-results/
