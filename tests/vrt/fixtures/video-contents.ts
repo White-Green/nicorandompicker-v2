@@ -1,0 +1,48 @@
+import type { VideoContent } from "../../../frontend/src/types";
+
+export const videoContents = [
+  {
+    contentId: "sm-vrt-001",
+    title: "四季をめぐるテスト動画 / Spring",
+    viewCounter: 123_456,
+    commentCounter: 7_890,
+    mylistCounter: 1_234,
+    likeCounter: 5_678,
+    lengthSeconds: 245,
+    thumbnailUrl: "https://vrt.invalid/thumbnails/spring.svg",
+    tags: ["VOCALOID", "春", "固定fixture"],
+  },
+  {
+    contentId: "sm-vrt-002",
+    title: "雨上がりの街 &amp; deterministic UI",
+    viewCounter: 98_765,
+    commentCounter: 4_321,
+    mylistCounter: 876,
+    likeCounter: 2_468,
+    lengthSeconds: 187,
+    thumbnailUrl: "https://vrt.invalid/thumbnails/rain.svg",
+    tags: ["音楽", "雨", "VRT"],
+  },
+  {
+    contentId: "sm-vrt-003",
+    title: "星空タイムラプス — 変わらない夜",
+    viewCounter: 54_321,
+    commentCounter: 2_345,
+    mylistCounter: 654,
+    likeCounter: 3_210,
+    lengthSeconds: 360,
+    thumbnailUrl: "https://vrt.invalid/thumbnails/night.svg",
+    tags: ["星空", "タイムラプス", "テスト"],
+  },
+  {
+    contentId: "sm-vrt-004",
+    title: "朝焼けのサンプル映像【VRT】",
+    viewCounter: 12_345,
+    commentCounter: 678,
+    mylistCounter: 90,
+    likeCounter: 1_111,
+    lengthSeconds: 92,
+    thumbnailUrl: "https://vrt.invalid/thumbnails/dawn.svg",
+    tags: ["朝焼け", "サンプル", "VRT"],
+  },
+] satisfies VideoContent[];

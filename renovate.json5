@@ -32,6 +32,12 @@
       groupName: "{{{depName}}}",
       groupSlug: "binary-{{{depName}}}",
     },
+    {
+      description: "Update the wrangler package and VRT binary pin together.",
+      matchPackageNames: ["wrangler"],
+      groupName: "wrangler",
+      groupSlug: "wrangler",
+    },
   ],
 
   customManagers: [
@@ -72,6 +78,36 @@
       ],
       depNameTemplate: "ghalint",
       packageNameTemplate: "suzuki-shunsuke/ghalint",
+      datasourceTemplate: "github-releases",
+      versioningTemplate: "semver",
+      depTypeTemplate: "binary",
+    },
+
+    // Wrangler version installed by wrangler-action in the VRT report workflow.
+    {
+      customType: "jsonata",
+      fileFormat: "yaml",
+      managerFilePatterns: ["/^\\.github\\/workflows\\/vrt-report\\.yml$/"],
+      matchStrings: [
+        '{ "depName": "wrangler", "currentValue": env.VRT_WRANGLER_VERSION }',
+      ],
+      depNameTemplate: "wrangler",
+      packageNameTemplate: "wrangler",
+      datasourceTemplate: "npm",
+      versioningTemplate: "npm",
+      depTypeTemplate: "binary",
+    },
+
+    // semdiff release downloaded by the VRT report workflow.
+    {
+      customType: "jsonata",
+      fileFormat: "yaml",
+      managerFilePatterns: ["/^\\.github\\/workflows\\/vrt-report\\.yml$/"],
+      matchStrings: [
+        '{ "depName": "semdiff", "currentValue": env.SEMDIFF_VERSION }',
+      ],
+      depNameTemplate: "semdiff",
+      packageNameTemplate: "White-Green/semdiff",
       datasourceTemplate: "github-releases",
       versioningTemplate: "semver",
       depTypeTemplate: "binary",

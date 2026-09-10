@@ -1,0 +1,243 @@
+name: VRT Report
+
+on:
+  workflow_run: # zizmor: ignore[dangerous-triggers] This privileged reporter never checks out or executes pull request code.
+    workflows: ["VRT Capture"]
+    types: [completed]
+
+permissions: {}
+
+env:
+  VRT_WRANGLER_VERSION: "4.129.0"
+  SEMDIFF_VERSION: v0.5.0
+  BASELINE_OBJECT_KEY: visual-regression/nicorandompicker-v2/baseline
+
+jobs:
+  publish_baseline:
+    name: Publish baseline
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      statuses: write
+
+    steps:
+      - name: Mark baseline publication pending
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            await github.rest.repos.createCommitStatus({
+              owner,
+              repo,
+              sha: context.payload.workflow_run.head_sha,
+              state: "pending",
+              context: "VRT Report / publish baseline",
+              target_url: process.env.RUN_URL,
+            });
+
+      - name: Download captured screenshots
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: vrt-screenshots
+          path: actual
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+
+      - name: Pack baseline
+        run: tar -I 'zstd -19' -cf baseline.tar.zst -C actual .
+
+      - name: Upload baseline to Cloudflare R2
+        uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4.0.0
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: ${{ env.VRT_WRANGLER_VERSION }}
+          command: >-
+            r2 object put
+            ${{ secrets.VRT_CF_R2_BUCKET }}/${{ env.BASELINE_OBJECT_KEY }}
+            --file ./baseline.tar.zst
+            --remote
+
+      - name: Finalize baseline publication status
+        if: always()
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          JOB_STATUS: ${{ job.status }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const mapping = { success: "success", failure: "failure", cancelled: "error" };
+            await github.rest.repos.createCommitStatus({
+              owner,
+              repo,
+              sha: context.payload.workflow_run.head_sha,
+              state: mapping[process.env.JOB_STATUS],
+              context: "VRT Report / publish baseline",
+              target_url: process.env.RUN_URL,
+            });
+
+  pr_checks:
+    name: Compare and publish report
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      issues: write
+      pull-requests: write
+      statuses: write
+
+    steps:
+      - name: Mark comparison pending
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            await github.rest.repos.createCommitStatus({
+              owner,
+              repo,
+              sha: context.payload.workflow_run.head_sha,
+              state: "pending",
+              context: "VRT Report / compare",
+              target_url: process.env.RUN_URL,
+            });
+
+      - name: Download current screenshots
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: vrt-screenshots
+          path: actual
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+
+      - name: Download baseline from Cloudflare R2
+        continue-on-error: true
+        uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4.0.0
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: ${{ env.VRT_WRANGLER_VERSION }}
+          command: >-
+            r2 object get
+            ${{ secrets.VRT_CF_R2_BUCKET }}/${{ env.BASELINE_OBJECT_KEY }}
+            --file ./main-baseline.tar.zst
+            --remote
+
+      - name: Compare screenshots
+        run: |
+          mkdir -p expected report .github/tmp
+          if [ -f main-baseline.tar.zst ]; then
+            tar -xaf main-baseline.tar.zst -C expected
+          fi
+
+          archive=".github/tmp/semdiff.tar.gz"
+          download_url="https://github.com/White-Green/semdiff/releases/download/${SEMDIFF_VERSION}/semdiff-x86_64-unknown-linux-musl.tar.gz"
+          curl -fsSL "${download_url}" --output "${archive}"
+          tar -xaf "${archive}" -C .github/tmp
+          .github/tmp/semdiff/semdiff ./expected ./actual \
+            --output-html ./report/index.html \
+            --output-json ./report.json
+
+      - name: Configure report Worker previews
+        run: |
+          jq -n '{
+            name: "nicorandompicker-v2-vrt",
+            compatibility_date: "2026-09-10",
+            workers_dev: false,
+            preview_urls: true,
+            assets: { directory: "./report" }
+          }' > wrangler.vrt-report.json
+
+      - name: Publish report to Cloudflare Workers
+        id: publish_report
+        uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4.0.0
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: ${{ env.VRT_WRANGLER_VERSION }}
+          command: versions upload --config wrangler.vrt-report.json
+
+      - name: Report result on pull request
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          PULL_REQUEST_NUMBER: ${{ github.event.workflow_run.pull_requests[0].number }}
+          VRT_REPORT_URL: ${{ steps.publish_report.outputs.deployment-url }}
+        with:
+          script: |
+            const fs = require("fs");
+            const { owner, repo } = context.repo;
+            const issue_number = Number(process.env.PULL_REQUEST_NUMBER);
+            const report = JSON.parse(fs.readFileSync("report.json", "utf8"));
+            const marker = "<!-- nicorandompicker-vrt-report -->";
+            const body = `${marker}
+            ## Visual Regression Test Summary
+
+            | Category  | Count               |
+            |-----------|---------------------|
+            | Unchanged | ${report.unchanged} |
+            | Modified  | ${report.modified}  |
+            | Added     | ${report.added}     |
+            | Deleted   | ${report.deleted}   |
+
+            [Diff Report](${process.env.VRT_REPORT_URL})`;
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner,
+              repo,
+              issue_number,
+              per_page: 100,
+            });
+            const oldComments = comments.filter((comment) =>
+              comment.body?.includes(marker),
+            );
+            const mutation = `
+              mutation($subjectId: ID!) {
+                minimizeComment(input: {
+                  subjectId: $subjectId,
+                  classifier: OUTDATED
+                }) {
+                  minimizedComment {
+                    isMinimized
+                    minimizedReason
+                  }
+                }
+              }
+            `;
+            for (const { node_id: subjectId } of oldComments) {
+              await github.graphql(mutation, { subjectId });
+            }
+
+            await github.rest.issues.createComment({ owner, repo, issue_number, body });
+
+      - name: Finalize non-blocking report status
+        if: always()
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          JOB_STATUS: ${{ job.status }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const succeeded = process.env.JOB_STATUS === "success";
+            await github.rest.repos.createCommitStatus({
+              owner,
+              repo,
+              sha: context.payload.workflow_run.head_sha,
+              state: "success",
+              context: "VRT Report / compare",
+              description: succeeded
+                ? "Visual differences are informational"
+                : "VRT reporting failed (non-blocking)",
+              target_url: process.env.RUN_URL,
+            });
