@@ -8,7 +8,7 @@ on:
 permissions: {}
 
 env:
-  VRT_WRANGLER_VERSION: "4.131.0"
+  VRT_WRANGLER_VERSION: "4.131.1"
   SEMDIFF_VERSION: v0.5.1
   BASELINE_OBJECT_KEY: visual-regression/nicorandompicker-v2/baseline
 
