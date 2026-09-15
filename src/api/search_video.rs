@@ -1,4 +1,4 @@
-use super::{ApiResult, AppState};
+use super::{ApiResult, ApiState};
 use crate::logic;
 use crate::snapshot::SearchCriteria;
 use crate::snapshot::response::VideoSearchResult;
@@ -26,7 +26,7 @@ pub(super) struct SearchParams {
 
 #[worker::send]
 #[tracing::instrument(skip_all)]
-pub(super) async fn handle(State(state): State<AppState>, Json(params): Json<SearchParams>) -> ApiResult<Vec<VideoSearchResult>> {
+pub(super) async fn handle<S: ApiState>(State(state): State<S>, Json(params): Json<SearchParams>) -> ApiResult<Vec<VideoSearchResult>> {
     let video_count = params.video_count;
     tracing::info!(
         requested_count = video_count,
@@ -37,7 +37,7 @@ pub(super) async fn handle(State(state): State<AppState>, Json(params): Json<Sea
     );
     let criteria = SearchCriteria::try_from(params)?;
     let rng = StdRng::seed_from_u64((js_sys::Math::random() * u64::MAX as f64) as u64);
-    let videos = logic::collect_video_ids(state.snapshot, criteria, video_count, rng).await?;
+    let videos = logic::collect_video_ids(state.snapshot(), criteria, video_count, rng).await?;
     tracing::info!(result_count = videos.len(), "search request completed");
     Ok(Json(videos))
 }

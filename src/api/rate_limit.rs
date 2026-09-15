@@ -1,4 +1,4 @@
-use crate::api::AppState;
+use crate::api::ApiState;
 use crate::api::session::SessionId;
 use axum::Extension;
 use axum::body::{Body, to_bytes};
@@ -10,15 +10,15 @@ use http::{HeaderMap, HeaderValue, Request, Response, StatusCode, header};
 const TURNSTILE_RECOMMENDED_HEADER: &str = "NRP-Turnstile-Recommended";
 
 #[tracing::instrument(skip_all, fields(method = %request.method(), path = %request.uri().path()))]
-pub(super) async fn middleware(
-    State(state): State<AppState>,
+pub(super) async fn middleware<S: ApiState>(
+    State(state): State<S>,
     session_id: Option<Extension<SessionId>>,
     request: Request<Body>,
     next: Next,
 ) -> Result<Response<Body>, RateLimitError> {
     let (rate_limit_kind, actor_kind) = if let Some(Extension(session_id)) = session_id {
-        let outcome = state.authenticated_rate_limiter.limit(format!("session:{}", session_id.as_str())).await?;
-        if !outcome.success {
+        let allowed = state.authenticated_rate_limit(format!("session:{}", session_id.as_str())).await?;
+        if !allowed {
             tracing::warn!(
                 actor_kind = "session",
                 rate_limit_kind = ?RateLimitKind::Authenticated,
@@ -30,8 +30,8 @@ pub(super) async fn middleware(
         (RateLimitKind::Authenticated, "session")
     } else {
         let ip = client_ip(request.headers());
-        let outcome = state.anonymous_rate_limiter.limit(ip).await?;
-        if !outcome.success {
+        let allowed = state.anonymous_rate_limit(ip).await?;
+        if !allowed {
             tracing::warn!(
                 actor_kind = "ip",
                 rate_limit_kind = ?RateLimitKind::Anonymous,

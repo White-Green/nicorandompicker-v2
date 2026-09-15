@@ -1,8 +1,7 @@
-use crate::api::{AppState, rate_limit, session};
+use crate::api::{ApiState, rate_limit, session};
 use axum::Json;
 use axum::extract::State;
 use axum::response::IntoResponse;
-use axum_extra::extract::cookie::SignedCookieJar;
 use http::{HeaderMap, StatusCode, header};
 use serde::{Deserialize, Serialize};
 
@@ -122,16 +121,16 @@ impl RateLimitKind {
 
 #[worker::send]
 #[tracing::instrument(skip_all)]
-pub(super) async fn handle(
-    State(state): State<AppState>,
+pub(super) async fn handle<S: ApiState>(
+    State(state): State<S>,
     headers: HeaderMap,
-    jar: SignedCookieJar,
+    jar: session::SessionCookieJar,
     Json(request): Json<VerifyRequest>,
-) -> Result<(SignedCookieJar, Json<VerifyResult>), Error> {
+) -> Result<(session::SessionCookieJar, Json<VerifyResult>), Error> {
     check_rate_limit(&state, &headers).await?;
     tracing::info!("turnstile verification started");
 
-    let secret_key = state.turnstile_secret_key;
+    let secret_key = state.turnstile_secret_key().to_owned();
 
     let response = reqwest::Client::new()
         .post(SITEVERIFY_URL)
@@ -159,12 +158,12 @@ pub(super) async fn handle(
     Ok((session::add_session_cookie(jar), Json(VerifyResult { success: true })))
 }
 
-async fn check_rate_limit(state: &AppState, headers: &HeaderMap) -> Result<(), Error> {
+async fn check_rate_limit<S: ApiState>(state: &S, headers: &HeaderMap) -> Result<(), Error> {
     let ip = rate_limit::client_ip(headers);
     let key = format!("ip:{ip}");
 
-    let outcome = state.turnstile_verify_client_rate_limiter.limit(key.clone()).await?;
-    if !outcome.success {
+    let allowed = state.turnstile_verify_client_rate_limit(key.clone()).await?;
+    if !allowed {
         tracing::warn!(
             actor_kind = "ip",
             rate_limit_kind = ?RateLimitKind::Client,
@@ -173,8 +172,8 @@ async fn check_rate_limit(state: &AppState, headers: &HeaderMap) -> Result<(), E
         return Err(Error::RateLimitExceeded(RateLimitKind::Client));
     }
 
-    let outcome = state.turnstile_verify_burst_rate_limiter.limit(key).await?;
-    if !outcome.success {
+    let allowed = state.turnstile_verify_burst_rate_limit(key).await?;
+    if !allowed {
         tracing::warn!(
             actor_kind = "ip",
             rate_limit_kind = ?RateLimitKind::Burst,
