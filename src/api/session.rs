@@ -1,4 +1,4 @@
-use crate::api::AppState;
+use crate::api::{ApiState, SessionCookieKey};
 use axum::body::Body;
 use axum::extract::State;
 use axum::middleware::Next;
@@ -9,6 +9,8 @@ use time::{Duration, UtcDateTime};
 const COOKIE_NAME: &str = "nrp_session";
 const COOKIE_MAX_AGE_SECONDS: Duration = Duration::hours(12);
 
+pub(super) type SessionCookieJar = SignedCookieJar<SessionCookieKey>;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) struct SessionId(String);
 
@@ -18,7 +20,7 @@ impl SessionId {
     }
 }
 
-pub(super) fn add_session_cookie(jar: SignedCookieJar) -> SignedCookieJar {
+pub(super) fn add_session_cookie(jar: SessionCookieJar) -> SessionCookieJar {
     jar.add(
         Cookie::build((
             COOKIE_NAME,
@@ -32,8 +34,8 @@ pub(super) fn add_session_cookie(jar: SignedCookieJar) -> SignedCookieJar {
     )
 }
 
-pub(super) async fn middleware(State(state): State<AppState>, mut request: Request<Body>, next: Next) -> Response<Body> {
-    let cookie_jar = SignedCookieJar::from_headers(request.headers(), state.session_cookie_key.clone());
+pub(super) async fn middleware<S: ApiState>(State(state): State<S>, mut request: Request<Body>, next: Next) -> Response<Body> {
+    let cookie_jar = SignedCookieJar::from_headers(request.headers(), state.session_cookie_key());
     if let Some(cookie) = cookie_jar.get(COOKIE_NAME)
         && let Some(session_id) = parse_session_cookie_at(cookie.value(), UtcDateTime::now())
     {
