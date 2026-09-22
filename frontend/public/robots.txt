@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://nicorandompicker.white-green.net/sitemap.xml
