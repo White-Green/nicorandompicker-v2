@@ -12,6 +12,9 @@ worker-build = "0.8.3"
 [lib]
 crate-type = ["cdylib"]
 
+[features]
+preview = []
+
 [dependencies]
 arrayvec = "0.7.6"
 axum = { default-features = false, features = [

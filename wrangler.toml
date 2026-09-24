@@ -3,7 +3,7 @@ main = "build/worker/shim.mjs"
 name = "nicorandompicker"
 
 [build]
-command = "worker-build --release"
+command = 'worker-build --release --features "${WORKER_BUILD_FEATURES:-}"'
 
 [assets]
 binding = "ASSETS"

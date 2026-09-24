@@ -17,7 +17,9 @@ pub(super) async fn middleware<S: ApiState>(
     request: Request<Body>,
     next: Next,
 ) -> Result<Response<Body>, RateLimitError<S::Err>> {
-    let (rate_limit_kind, actor_kind) = if let Some(Extension(session_id)) = session_id {
+    let (rate_limit_kind, actor_kind) = if let Some(Extension(session_id)) = session_id
+        && !cfg!(feature = "preview")
+    {
         let allowed = state.authenticated_rate_limit(format!("session:{}", session_id.as_str())).await?;
         if !allowed {
             tracing::warn!(
@@ -88,7 +90,7 @@ impl RateLimitKind {
     }
 
     fn apply_response_headers(self, headers: &mut header::HeaderMap) {
-        if self == RateLimitKind::Anonymous {
+        if self == RateLimitKind::Anonymous && !cfg!(feature = "preview") {
             headers.insert(TURNSTILE_RECOMMENDED_HEADER, HeaderValue::from_static("true"));
         }
     }
