@@ -407,7 +407,7 @@
       </div>
       <div class="result_area">
         <div
-          class="m-4 grid grid-cols-[repeat(auto-fit,minmax(320px,1fr))] gap-4"
+          class="m-4 grid grid-cols-[repeat(auto-fill,minmax(320px,1fr))] gap-4"
         >
           {#each videos as video (video.contentId)}
             <VideoResultItem
@@ -416,9 +416,6 @@
               onPlay={play}
               onDelete={removeVideo}
             />
-          {/each}
-          {#each new Array(10)}
-            <div></div>
           {/each}
         </div>
       </div>
