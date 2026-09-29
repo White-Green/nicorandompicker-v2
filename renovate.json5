@@ -38,6 +38,19 @@
       groupName: "wrangler",
       groupSlug: "wrangler",
     },
+    {
+      description: "Skip Node.js and Go changelogs in dependency update PRs.",
+      matchManagers: ["github-actions"],
+      matchDepTypes: ["uses-with"],
+      matchDepNames: ["node", "go"],
+      fetchChangeLogs: "off",
+    },
+    {
+      description: "Skip pnpm and TypeScript changelogs in dependency update PRs.",
+      matchDatasources: ["npm"],
+      matchPackageNames: ["pnpm", "typescript"],
+      fetchChangeLogs: "off",
+    },
   ],
 
   customManagers: [
