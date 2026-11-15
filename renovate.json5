@@ -38,7 +38,6 @@
       matchPackageNames: ["worker", "worker-build"],
       groupName: "workers-rs",
       groupSlug: "workers-rs",
-      minimumGroupSize: 1,
     },
     {
       description: "Update the wrangler package and VRT binary pin together.",
