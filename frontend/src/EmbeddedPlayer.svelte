@@ -197,12 +197,13 @@
           class="badge badge-soft badge-primary m-1"
           title="タグをコピー"
           onclick={() => copyTag(playerTag)}
-          ><img
+        >
+          <img
             alt="copy"
             src={copyClipboard}
             class="h-4 mix-blend-difference"
-          />{playerTag}</button
-        >
+          />{playerTag}
+        </button>
       {/each}
     {/if}
   </div>

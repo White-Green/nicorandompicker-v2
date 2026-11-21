@@ -328,9 +328,9 @@
           >
             <div class="card-body">
               <label class="label cursor-pointer justify-between">
-                <span class="label-text text-base-content"
-                  >検索設定のみ共有</span
-                >
+                <span class="label-text text-base-content">
+                  検索設定のみ共有
+                </span>
                 <input
                   class="checkbox checkbox-sm"
                   type="checkbox"
@@ -338,19 +338,23 @@
                 />
               </label>
               <div class="card-actions flex-col">
-                <button class="btn btn-primary w-full" onclick={copyShareUrl}
-                  >リンクURLをコピー
+                <button class="btn btn-primary w-full" onclick={copyShareUrl}>
+                  リンクURLをコピー
                 </button>
-                <button class="btn btn-primary w-full" onclick={postToXShareUrl}
-                  >リンクをXに投稿
+                <button
+                  class="btn btn-primary w-full"
+                  onclick={postToXShareUrl}
+                >
+                  リンクをXに投稿
                 </button>
-                <button class="btn btn-primary w-full" onclick={shareToMisskey}
-                  >Misskeyで共有
+                <button class="btn btn-primary w-full" onclick={shareToMisskey}>
+                  Misskeyで共有
                 </button>
                 <button
                   class="btn btn-primary w-full"
                   onclick={openInVocacolleApp}
-                  >ボカコレアプリで開く
+                >
+                  ボカコレアプリで開く
                 </button>
               </div>
             </div>
