@@ -95,9 +95,9 @@
       />
     </div>
     <div class="my-3">
-      <label class="mb-1 block" for="start_time_input"
-        >アップロード日時フィルタ</label
-      >
+      <label class="mb-1 block" for="start_time_input">
+        アップロード日時フィルタ
+      </label>
       <div class="grid grid-cols-2 gap-3 6xl:gap-6" id="start_time_input">
         <div class="my-3">
           <label class="mb-1 block" for="start_time_from_input">ここから</label>
@@ -125,8 +125,9 @@
       <label class="mb-1 block" for="view_counter_input">再生数フィルタ</label>
       <div class="grid grid-cols-2 gap-3 xl:gap-6" id="view_counter_input">
         <div class="my-3">
-          <label class="mb-1 block" for="view_counter_min_input">これ以上</label
-          >
+          <label class="mb-1 block" for="view_counter_min_input">
+            これ以上
+          </label>
           <input
             bind:value={viewMin}
             type="number"
@@ -139,8 +140,9 @@
           />
         </div>
         <div class="my-3">
-          <label class="mb-1 block" for="view_counter_max_input">これ以下</label
-          >
+          <label class="mb-1 block" for="view_counter_max_input">
+            これ以下
+          </label>
           <input
             bind:value={viewMax}
             type="number"

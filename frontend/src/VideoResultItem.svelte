@@ -103,8 +103,10 @@
       <a
         href={`https://nico.ms/${video.contentId}`}
         target="_blank"
-        rel="noreferrer noopener">{unescapeHTML(video.title)}</a
+        rel="noreferrer noopener"
       >
+        {unescapeHTML(video.title)}
+      </a>
     </div>
     <div class="video_link_detail_area">
       <div class="video_link_detail">
